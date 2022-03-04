@@ -35,14 +35,17 @@ namespace WebApiSecurity.Controllers
         [HttpPost(nameof(Auth))]
         public IActionResult Auth([FromBody] LoginModel data)
         {
-            string claimMethod = "method";
-            string claimChannel = "channel";
-            string claimPath = "path";
+            var method = HttpContext.Request.Method;
+            var channel = "sucursal";
+            var path = HttpContext.Request.Path;
+            //string claimMethod = "method";
+            //string claimChannel = "channel";
+            //string claimPath = "path";
 
             bool isValid = _userService.IsValidUserInformation(data);
             if (isValid)
             {
-                var tokenString = GenerateJwtToken(data.UserName, claimMethod, claimChannel, claimPath);
+                var tokenString = GenerateJwtToken(data.UserName, method, channel, path);
                 return Ok(new { Token = tokenString, Message = "Success" });
             }
             return BadRequest("Please pass the valid Username and Password");
@@ -63,19 +66,19 @@ namespace WebApiSecurity.Controllers
         /// <param name="accountId"></param>
         /// <returns></returns>
         // This method creates a token based on the Issuer, Audience, and Secretkey which we defined in the appsettings.json file.
-        private string GenerateJwtToken(string userName, string claimMethod, string claimChannel, string claimPath)
+        private string GenerateJwtToken(string userName, string method, string channel, string path)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
- 
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim("id", userName),
-                    new Claim("POST", claimMethod),
-                    new Claim("sucursal", claimChannel),
-                    new Claim("v1/minipompom/jwt/creation", claimPath),
+                    new Claim("method", method),
+                    new Claim("channel", channel),
+                    new Claim("path", path),                   
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(20),
                 Issuer = _configuration["Jwt:Issuer"],
