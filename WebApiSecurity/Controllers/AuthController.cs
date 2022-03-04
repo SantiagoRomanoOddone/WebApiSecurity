@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +21,6 @@ namespace WebApiSecurity.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        // In the service folder is where the core business logic is residing and I am using dependency Injection to consume these services in the controller via constructor injection.
         private readonly IConfiguration _configuration;
         private readonly IUserService _userService;
         public AuthController(IConfiguration configuration, IUserService userService)
@@ -28,56 +28,46 @@ namespace WebApiSecurity.Controllers
             _configuration = configuration;
             _userService = userService;
         }
-
-        //  This method is responsible to validate the login credentials and create the token based on username. This method expects LoginModel object for username and password.
-        // AllowAnonymous attribute to bypass the authentication.
         [AllowAnonymous]
         [HttpPost(nameof(Auth))]
         public IActionResult Auth([FromBody] LoginModel data)
         {
-            var method = HttpContext.Request.Method;
-            var channel = "sucursal";
-            var path = HttpContext.Request.Path;
-
+            var imputBody = new ImputBody
+            {
+                method = HttpContext.Request.Method,
+                channel = "sucursal",
+                path = HttpContext.Request.Path
+            };
             bool isValid = _userService.IsValidUserInformation(data);
             if (isValid)
             {
-                var tokenString = GenerateJwtToken(data.UserName, method, channel, path);
+                var tokenString = GenerateJwtToken(data.UserName, imputBody/*method, channel, path*/);
                 return Ok(new { Token = tokenString, Message = "Success" });
             }
             return BadRequest("Please pass the valid Username and Password");
         }
 
-        // Once we enabled the Authentication, I have created a sample Get API by adding the Authorize Attribute So that this API will trigger the validation check of the token passed with an HTTP request.
-
-        //This is a header request 
         [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet(nameof(GetResult))]
         public IActionResult GetResult()
         {
             return Ok("API Validated");
         }
-        /// <summary>
-        /// Generate JWT Token after successful login.
-        /// </summary>
-        /// <param name="accountId"></param>
-        /// <returns></returns>
-        // This method creates a token based on the Issuer, Audience, and Secretkey which we defined in the appsettings.json file.
-        private string GenerateJwtToken(string userName, string method, string channel, string path)
+
+        private string GenerateJwtToken(string userName, ImputBody imputBody)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
-            var imputBody = new ClaimsIdentity(new[]
+
+            var claims = new ClaimsIdentity(new[]
             {
                 new Claim("id", userName),
-                new Claim("method", method),
-                new Claim("channel", channel),
-                new Claim("path", path),
+                new Claim("imput-body", JsonConvert.SerializeObject(imputBody))
             });
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = imputBody,
+                Subject = claims,
                 Expires = DateTime.UtcNow.AddMinutes(20),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
@@ -85,26 +75,6 @@ namespace WebApiSecurity.Controllers
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
-
-            #region A borrar
-            //var tokenDescriptor = new SecurityTokenDescriptor
-            //{
-            //    Subject = new ClaimsIdentity(new[]
-            //    {
-            //        new Claim("id", userName),
-            //        new Claim("imput-body", imputBody.ToString()),
-            //        //new Claim("method", method),
-            //        //new Claim("channel", channel),
-            //        //new Claim("path", path),
-            //    }),
-            //    Expires = DateTime.UtcNow.AddMinutes(20),
-            //    Issuer = _configuration["Jwt:Issuer"],
-            //    Audience = _configuration["Jwt:Audience"],
-            //    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            //};
-            //var token = tokenHandler.CreateToken(tokenDescriptor);
-            //return tokenHandler.WriteToken(token);
-            #endregion
         }
 
         #region A borrar
