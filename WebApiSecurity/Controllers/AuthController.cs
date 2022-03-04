@@ -15,7 +15,8 @@ using WebApiSecurity.Services;
 
 namespace WebApiSecurity.Controllers
 {
-    [Route("api/[controller]")]
+    //[Route("api/[controller]")]
+    [Route("v1/minipompom/jwt/creation")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -34,10 +35,14 @@ namespace WebApiSecurity.Controllers
         [HttpPost(nameof(Auth))]
         public IActionResult Auth([FromBody] LoginModel data)
         {
+            string claimMethod = "method";
+            string claimChannel = "channel";
+            string claimPath = "path";
+
             bool isValid = _userService.IsValidUserInformation(data);
             if (isValid)
             {
-                var tokenString = GenerateJwtToken(data.UserName);
+                var tokenString = GenerateJwtToken(data.UserName, claimMethod, claimChannel, claimPath);
                 return Ok(new { Token = tokenString, Message = "Success" });
             }
             return BadRequest("Please pass the valid Username and Password");
@@ -58,26 +63,52 @@ namespace WebApiSecurity.Controllers
         /// <param name="accountId"></param>
         /// <returns></returns>
         // This method creates a token based on the Issuer, Audience, and Secretkey which we defined in the appsettings.json file.
-        private string GenerateJwtToken(string userName)
+        private string GenerateJwtToken(string userName, string claimMethod, string claimChannel, string claimPath)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
-            //TODO: How to describe the Token Claims properly
+ 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[] 
-                { 
-                    new Claim("id", userName)                
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim("id", userName),
+                    new Claim("POST", claimMethod),
+                    new Claim("sucursal", claimChannel),
+                    new Claim("v1/minipompom/jwt/creation", claimPath),
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(1),
+                Expires = DateTime.UtcNow.AddMinutes(20),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
 
-        }    
+        #region A borrar
+        //private string GenerateJwtToken(string userName)
+        //{
+        //    var tokenHandler = new JwtSecurityTokenHandler();
+        //    var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
+        //    //TODO: How to describe the Token Claims properly
+
+        //    var tokenDescriptor = new SecurityTokenDescriptor
+        //    {
+        //        Subject = new ClaimsIdentity(new[] 
+        //        { 
+        //            new Claim("id", userName),                  
+        //        }),
+
+        //        Expires = DateTime.UtcNow.AddMinutes(20),
+        //        Issuer = _configuration["Jwt:Issuer"],
+        //        Audience = _configuration["Jwt:Audience"],
+        //        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        //    };
+        //    var token = tokenHandler.CreateToken(tokenDescriptor);
+        //    return tokenHandler.WriteToken(token);
+        //}    
+        #endregion
     }
     #region JsonProperties  
     /// <summary>  
