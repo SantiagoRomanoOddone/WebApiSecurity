@@ -38,9 +38,6 @@ namespace WebApiSecurity.Controllers
             var method = HttpContext.Request.Method;
             var channel = "sucursal";
             var path = HttpContext.Request.Path;
-            //string claimMethod = "method";
-            //string claimChannel = "channel";
-            //string claimPath = "path";
 
             bool isValid = _userService.IsValidUserInformation(data);
             if (isValid)
@@ -70,16 +67,17 @@ namespace WebApiSecurity.Controllers
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
+            var imputBody = new ClaimsIdentity(new[]
+            {
+                new Claim("id", userName),
+                new Claim("method", method),
+                new Claim("channel", channel),
+                new Claim("path", path),
+            });
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim("id", userName),
-                    new Claim("method", method),
-                    new Claim("channel", channel),
-                    new Claim("path", path),                   
-                }),
+                Subject = imputBody,
                 Expires = DateTime.UtcNow.AddMinutes(20),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
@@ -87,6 +85,26 @@ namespace WebApiSecurity.Controllers
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+
+            #region A borrar
+            //var tokenDescriptor = new SecurityTokenDescriptor
+            //{
+            //    Subject = new ClaimsIdentity(new[]
+            //    {
+            //        new Claim("id", userName),
+            //        new Claim("imput-body", imputBody.ToString()),
+            //        //new Claim("method", method),
+            //        //new Claim("channel", channel),
+            //        //new Claim("path", path),
+            //    }),
+            //    Expires = DateTime.UtcNow.AddMinutes(20),
+            //    Issuer = _configuration["Jwt:Issuer"],
+            //    Audience = _configuration["Jwt:Audience"],
+            //    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            //};
+            //var token = tokenHandler.CreateToken(tokenDescriptor);
+            //return tokenHandler.WriteToken(token);
+            #endregion
         }
 
         #region A borrar
