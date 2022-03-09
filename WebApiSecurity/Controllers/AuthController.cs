@@ -32,7 +32,7 @@ namespace WebApiSecurity.Controllers
         [HttpPost(nameof(Auth))]
         public IActionResult Auth([FromBody] LoginModel data)
         {
-            var imputBody = new ImputBody
+            var inputBody = new InputBody
             {
                 method = HttpContext.Request.Method,
                 channel = "sucursal",
@@ -41,7 +41,7 @@ namespace WebApiSecurity.Controllers
             bool isValid = _userService.IsValidUserInformation(data);
             if (isValid)
             {
-                var tokenString = GenerateJwtToken(data.UserName, imputBody/*method, channel, path*/);
+                var tokenString = GenerateJwtToken(data.UserName, inputBody);
                 return Ok(new { Token = tokenString, Message = "Success" });
             }
             return BadRequest("Please pass the valid Username and Password");
@@ -54,7 +54,7 @@ namespace WebApiSecurity.Controllers
             return Ok("API Validated");
         }
 
-        private string GenerateJwtToken(string userName, ImputBody imputBody)
+        private string GenerateJwtToken(string userName, InputBody inputBody)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
@@ -62,13 +62,14 @@ namespace WebApiSecurity.Controllers
             var claims = new ClaimsIdentity(new[]
             {
                 new Claim("id", userName),
-                new Claim("imput-body", JsonConvert.SerializeObject(imputBody))
+                new Claim("input-body", JsonConvert.SerializeObject(inputBody))
             });
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = claims,
-                Expires = DateTime.UtcNow.AddMinutes(20),
+                //TODO: Cambiar a 1min una vez finalizada la capacitación para cumplir con los requerimentos del trabajo
+                Expires = DateTime.UtcNow.AddHours(4),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
