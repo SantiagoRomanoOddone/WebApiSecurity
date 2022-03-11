@@ -9,7 +9,7 @@ namespace WebApiSecurity.Services
     public interface IUserService
     {
         bool IsValidUserInformation(LoginModel model);
-        //TODO: VER
+
         LoginModel GetUserDetails();
     }
 }

@@ -16,8 +16,7 @@ using WebApiSecurity.Services;
 
 namespace WebApiSecurity.Controllers
 {
-    //[Route("api/[controller]")]
-    [Route("v1/minipompom/jwt/creation")]
+    [Route("v1/minipompom/jwt")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -76,31 +75,7 @@ namespace WebApiSecurity.Controllers
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
-        }
-
-        #region A borrar
-        //private string GenerateJwtToken(string userName)
-        //{
-        //    var tokenHandler = new JwtSecurityTokenHandler();
-        //    var key = Encoding.ASCII.GetBytes(_configuration["Jwt:key"]);
-        //    //TODO: How to describe the Token Claims properly
-
-        //    var tokenDescriptor = new SecurityTokenDescriptor
-        //    {
-        //        Subject = new ClaimsIdentity(new[] 
-        //        { 
-        //            new Claim("id", userName),                  
-        //        }),
-
-        //        Expires = DateTime.UtcNow.AddMinutes(20),
-        //        Issuer = _configuration["Jwt:Issuer"],
-        //        Audience = _configuration["Jwt:Audience"],
-        //        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        //    };
-        //    var token = tokenHandler.CreateToken(tokenDescriptor);
-        //    return tokenHandler.WriteToken(token);
-        //}    
-        #endregion
+        }      
     }
     #region JsonProperties  
     /// <summary>  

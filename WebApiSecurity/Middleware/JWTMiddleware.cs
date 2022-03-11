@@ -60,13 +60,11 @@ namespace WebApiSecurity.Middleware
                 var jwtToken = (JwtSecurityToken)validatedToken;
                 var accountId = jwtToken.Claims.First(x => x.Type == "id").Value;
 
-                // attach account to context on successful jwt validation
                 context.Items["User"] = _userService.GetUserDetails();
             }
             catch
             {
-                // do nothing if jwt validation fails
-                // account is not attached to context so request won't have access to secure routes
+
             }
         }
     }
