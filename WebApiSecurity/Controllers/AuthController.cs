@@ -68,7 +68,7 @@ namespace WebApiSecurity.Controllers
             {
                 Subject = claims,
                 //TODO: Cambiar a 1min una vez finalizada la capacitación para cumplir con los requerimentos del trabajo
-                Expires = DateTime.UtcNow.AddHours(4),
+                Expires = DateTime.UtcNow.AddHours(12),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
