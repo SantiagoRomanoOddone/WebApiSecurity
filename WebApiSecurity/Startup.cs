@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -9,11 +10,16 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using WebApiSecurity.Controllers;
 using WebApiSecurity.Middleware;
 using WebApiSecurity.Services;
 
@@ -102,6 +108,27 @@ namespace WebApiSecurity
             #endregion
 
             services.AddTransient<IUserService, UserService>();
+
+            #region Open Telemetry
+            services.AddOpenTelemetryTracing(
+            builder =>
+            {
+                builder
+                .AddSource(nameof(AuthController))
+                .AddHttpClientInstrumentation()
+                    .SetResourceBuilder(ResourceBuilder
+                        .CreateDefault()
+                        .AddService(Assembly.GetEntryAssembly().GetName().Name))
+                    .AddAspNetCoreInstrumentation(
+                    options =>
+                    {
+                        options.Enrich = Enrich;
+                        options.RecordException = true;
+                    }
+                    )
+                    .AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317"));
+            });
+            #endregion
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -130,6 +157,53 @@ namespace WebApiSecurity
             {
                 endpoints.MapControllers();
             });
+        }
+        private static void Enrich(Activity activity, string eventName, object obj)
+        {
+            if (obj is HttpRequest request)
+            {
+                var context = request.HttpContext;
+                activity.AddTag("http.flavor", GetHttpFlavour(request.Protocol));
+                activity.AddTag("http.scheme", request.Scheme);
+                activity.AddTag("http.client_ip", context.Connection.RemoteIpAddress);
+                activity.AddTag("http.request_content_length", request.ContentLength);
+                activity.AddTag("http.request_content_type", request.ContentType);
+
+                var user = context.User;
+                if (user.Identity?.Name is not null)
+                {
+                    activity.AddTag("enduser.id", user.Identity.Name);
+                    activity.AddTag(
+                        "enduser.scope",
+                        string.Join(',', user.Claims.Select(x => x.Value)));
+                }
+            }
+            else if (obj is HttpResponse response)
+            {
+                activity.AddTag("http.response_content_length", response.ContentLength);
+                activity.AddTag("http.response_content_type", response.ContentType);
+            }
+        }
+        public static string GetHttpFlavour(string protocol)
+        {
+            if (HttpProtocol.IsHttp10(protocol))
+            {
+                return "1.0";
+            }
+            else if (HttpProtocol.IsHttp11(protocol))
+            {
+                return "1.1";
+            }
+            else if (HttpProtocol.IsHttp2(protocol))
+            {
+                return "2.0";
+            }
+            else if (HttpProtocol.IsHttp3(protocol))
+            {
+                return "3.0";
+            }
+
+            throw new InvalidOperationException($"Protocol {protocol} not recognised.");
         }
     }
 }
