@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using OpenTelemetry;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -46,10 +48,22 @@ namespace WebApiSecurity.Controllers
             return BadRequest("Please pass the valid Username and Password");
         }
 
-        [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
+        //[Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet(nameof(GetResult))]
         public IActionResult GetResult()
         {
+            //var connectionId = Baggage.Current.GetBaggage("ConnectionId");
+            //var traceIdentifier = Baggage.Current.GetBaggage("TraceIdentifier");
+            
+
+            //using var source = new ActivitySource("ExampleTracer");
+            //using var activity = source.StartActivity("In Security Web Api");
+
+
+            //activity?.SetTag("ConnectionId", connectionId);
+            //activity?.SetTag("TraceIdentifier", traceIdentifier);
+
+             
             return Ok("API Validated");
         }
 

@@ -115,6 +115,7 @@ namespace WebApiSecurity
             {
                 builder
                 .AddSource(nameof(AuthController))
+                .AddSource("ExampleTracer")
                 .AddHttpClientInstrumentation()
                     .SetResourceBuilder(ResourceBuilder
                         .CreateDefault()
@@ -126,9 +127,20 @@ namespace WebApiSecurity
                         options.RecordException = true;
                     }
                     )
-                    .AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317"));
+                    .AddJaegerExporter();
             });
             #endregion
+
+            #region RequestResponseLogging
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddConsole();
+                loggingBuilder.AddDebug();
+                loggingBuilder.AddEventSourceLogger();
+            });
+            #endregion
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -149,9 +161,9 @@ namespace WebApiSecurity
             
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebApiSecurity v1"));
 
+            app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
-
-            app.UseMiddleware<JWTMiddleware>();
+            app.UseMiddleware<JWTMiddleware>();        
 
             app.UseEndpoints(endpoints =>
             {
